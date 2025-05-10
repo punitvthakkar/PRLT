@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Flexibility Assessment</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --primary-color: #00d2ff;
+            --secondary-color: #ff006e;
+            --correct-color: #00ff88;
+            --incorrect-color: #ff3366;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .screen {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            margin: 20px 0;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Instructions Screen */
+        .instructions h1 {
+            font-size: 2.2em;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+        
+        .instructions-text {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .instructions-list {
+            text-align: left;
+            margin: 30px auto;
+            max-width: 600px;
+            list-style: none;
+        }
+        
+        .instructions-list li {
+            margin: 15px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .instructions-list li::before {
+            content: '✨';
+            position: absolute;
+            left: 0;
+            font-size: 1.2em;
+        }
+        
+        .highlight {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .highlight-red {
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, var(--primary-color), #3a7bd5);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.3);
+            margin-top: 30px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 25px rgba(0, 210, 255, 0.4);
+        }
+        
+        /* Game Screen */
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            gap: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+        
+        .info-value {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .recent-accuracy {
+            color: var(--correct-color);
+        }
+        
+        .stimuli-container {
+            display: flex;
+            gap: 80px;
+            justify-content: center;
+            margin: 60px 0;
+            flex-wrap: wrap;
+        }
+        
+        .stimulus {
+            width: 120px;
+            height: 120px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+        
+        .stimulus:hover {
+            transform: scale(1.1) translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .stimulus:active {
+            transform: scale(0.95);
+        }
+        
+        .circle {
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00b4d8, #0077be);
+            border-color: #0077be;
+        }
+        
+        .square {
+            border-radius: 15px;
+            background: linear-gradient(45deg, #ff006e, #c1121f);
+            border-color: #c1121f;
+        }
+        
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .feedback.show {
+            animation: feedbackPop 0.6s ease-out;
+        }
+        
+        @keyframes feedbackPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        
+        .feedback-text {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            font-weight: 600;
+            opacity: 0;
+            z-index: 200;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .feedback-text.show {
+            opacity: 1;
+            animation: feedbackText 0.8s ease-out forwards;
+        }
+        
+        @keyframes feedbackText {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+            70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+        }
+        
+        .correct { color: var(--correct-color); }
+        .incorrect { color: var(--incorrect-color); }
+        
+        /* Results Screen */
+        .results h1 {
+            font-size: 2.2em;
+            margin-bottom: 40px;
+            color: var(--primary-color);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .metric-title {
+            font-size: 1em;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        
+        .metric-value {
+            font-size: 1.6em;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        
+        .metric-insight {
+            font-size: 0.9em;
+            opacity: 0.7;
+            line-height: 1.5;
+        }
+        
+        .performance-chart {
+            margin: 50px 0;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 15px;
+        }
+        
+        .performance-analysis {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 40px 0;
+        }
+        
+        .performance-analysis h3 {
+            color: var(--correct-color);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .performance-analysis p {
+            opacity: 0.9;
+            line-height: 1.7;
+        }
+        
+        .export-section {
+            margin: 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .export-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 25px;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+        
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .screen {
+                padding: 30px 20px;
+            }
+            
+            .stimuli-container {
+                gap: 50px;
+            }
+            
+            .stimulus {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .info-panel {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .info-item {
+                width: 100%;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Utility classes */
+        .text-center { text-align: center; }
+        .mb-20 { margin-bottom: 20px; }
+        .mt-20 { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Instructions Screen -->
+        <div id="instructionsScreen" class="screen active">
+            <div class="instructions">
+                <h1>Cognitive Flexibility Assessment</h1>
+                <p class="instructions-text">Welcome to this quick cognitive task! You'll make choices between shapes and adapt to changing rules.</p>
+                
+                <ul class="instructions-list">
+                    <li>Click the <span class="highlight">blue circle</span> or <span class="highlight-red">red square</span></li>
+                    <li>Get feedback for each choice (+1 point for correct)</li>
+                    <li>The rules may change during the task - stay flexible!</li>
+                    <li>Complete 25 trials (about 2-3 minutes)</li>
+                    <li>Try to maximize your score</li>
+                </ul>
+                
+                <p style="font-size: 0.95em; opacity: 0.9; margin-top: 30px;">This assessment measures how well you adapt to changing reward patterns.</p>
+                
+                <button class="btn" onclick="startGame()">Begin Assessment</button>
+            </div>
+        </div>
+        
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen">
+            <div class="info-panel">
+                <div class="info-item">
+                    <span class="info-label">Score</span>
+                    <span class="info-value" id="score">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Trial</span>
+                    <span class="info-value" id="trial">1 / 25</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Recent Accuracy</span>
+                    <span class="info-value recent-accuracy" id="recentAccuracy">-</span>
+                </div>
+            </div>
+            
+            <div class="stimuli-container" id="stimuliContainer">
+                <div class="stimulus circle" id="stimulus1" onclick="selectStimulus('circle')">
+                    <div class="feedback" id="feedback1"></div>
+                </div>
+                <div class="stimulus square" id="stimulus2" onclick="selectStimulus('square')">
+                    <div class="feedback" id="feedback2"></div>
+                </div>
+            </div>
+            
+            <div class="feedback-text" id="feedbackText"></div>
+        </div>
+        
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="screen">
+            <h1>Assessment Complete!</h1>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Total Score</div>
+                    <div class="metric-value" id="finalScore">0</div>
+                    <div class="metric-insight" id="scoreInsight">-</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Cognitive Flexibility</div>
+                    <div class="metric-value" id="flexibilityRating">-</div>
+                    <div class="metric-insight" id="flexibilityInsight">-</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Learning Style</div>
+                    <div class="metric-value" id="learningStyle">-</div>
+                    <div class="metric-insight" id="learningInsight">-</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Feedback Sensitivity</div>
+                    <div class="metric-value" id="feedbackSensitivity">-</div>
+                    <div class="metric-insight" id="feedbackInsight">-</div>
+                </div>
+            </div>
+            
+            <div class="performance-chart">
+                <canvas id="performanceChart"></canvas>
+            </div>
+            
+            <div class="performance-analysis">
+                <h3>Your Performance Analysis</h3>
+                <p id="performanceText">Analysis will appear here...</p>
+            </div>
+            
+            <div class="export-section">
+                <p style="opacity: 0.8; margin-bottom: 10px;">Export your results:</p>
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="exportData('csv')">📄 Export CSV</button>
+                    <button class="export-btn" onclick="exportData('json')">📋 Export JSON</button>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="restartGame()">Take Assessment Again</button>
+        </div>
+    </div>
+    
+    <script>
+        // Game state
+        const gameState = {
+            currentTrial: 0,
+            totalTrials: 25,
+            score: 0,
+            phase: 'initial',
+            reversalTrial: 12,
+            trialData: [],
+            recentChoices: [],
+            startTime: Date.now(),
+            isActive: false
+        };
+        
+        // Reward probabilities for each phase
+        const rewardProbabilities = {
+            initial: { circle: 0.8, square: 0.2 },
+            reversal: { circle: 0.2, square: 0.8 }
+        };
+        
+        // Start the game
+        function startGame() {
+            showScreen('gameScreen');
+            resetGameState();
+            presentTrial();
+        }
+        
+        // Reset game state
+        function resetGameState() {
+            Object.assign(gameState, {
+                currentTrial: 0,
+                score: 0,
+                phase: 'initial',
+                trialData: [],
+                recentChoices: [],
+                startTime: Date.now(),
+                isActive: true
+            });
+        }
+        
+        // Present a trial
+        function presentTrial() {
+            if (!gameState.isActive) return;
+            
+            gameState.currentTrial++;
+            
+            // Check if we need to switch to reversal phase
+            if (gameState.currentTrial === gameState.reversalTrial) {
+                gameState.phase = 'reversal';
+            }
+            
+            // Update UI
+            updateUI();
+            randomizeStimuli();
+            gameState.trialStartTime = Date.now();
+        }
+        
+        // Update the UI
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('trial').textContent = `${gameState.currentTrial} / ${gameState.totalTrials}`;
+        }
+        
+        // Randomize stimulus positions
+        function randomizeStimuli() {
+            const container = document.getElementById('stimuliContainer');
+            const stimuli = [...container.children];
+            if (Math.random() > 0.5) {
+                container.appendChild(stimuli[0]);
+            }
+        }
+        
+        // Handle stimulus selection
+        function selectStimulus(type) {
+            if (!gameState.isActive) return;
+            
+            gameState.isActive = false;
+            const reactionTime = Date.now() - gameState.trialStartTime;
+            const currentProbs = rewardProbabilities[gameState.phase];
+            const isCorrect = Math.random() < currentProbs[type];
+            
+            // Record trial data
+            const trial = {
+                number: gameState.currentTrial,
+                stimulus: type,
+                outcome: isCorrect,
+                reactionTime: reactionTime,
+                phase: gameState.phase,
+                correctStimulus: gameState.phase === 'initial' ? 'circle' : 'square',
+                timestamp: Date.now()
+            };
+            
+            gameState.trialData.push(trial);
+            updateRecentChoices(trial);
+            
+            // Update score and show feedback
+            if (isCorrect) gameState.score++;
+            showFeedback(type, isCorrect);
+            updateRecentAccuracy();
+            
+            // Continue or end game
+            setTimeout(() => {
+                gameState.isActive = true;
+                if (gameState.currentTrial >= gameState.totalTrials) {
+                    showResults();
+                } else {
+                    presentTrial();
+                }
+            }, 1000);
+        }
+        
+        // Update recent choices array
+        function updateRecentChoices(trial) {
+            gameState.recentChoices.push(trial);
+            if (gameState.recentChoices.length > 5) {
+                gameState.recentChoices.shift();
+            }
+        }
+        
+        // Show feedback animation
+        function showFeedback(stimulus, isCorrect) {
+            const feedbackSymbol = document.getElementById(stimulus === 'circle' ? 'feedback1' : 'feedback2');
+            const feedbackText = document.getElementById('feedbackText');
+            
+            // Show symbol
+            feedbackSymbol.textContent = isCorrect ? '✓' : '✗';
+            feedbackSymbol.className = 'feedback show';
+            
+            // Show text
+            feedbackText.textContent = isCorrect ? '+1 Point!' : 'Try Again';
+            feedbackText.className = `feedback-text ${isCorrect ? 'correct' : 'incorrect'} show`;
+            
+            // Clear animations
+            setTimeout(() => {
+                feedbackSymbol.className = 'feedback';
+                feedbackText.className = 'feedback-text';
+            }, 800);
+        }
+        
+        // Update recent accuracy display
+        function updateRecentAccuracy() {
+            if (gameState.recentChoices.length === 0) return;
+            
+            const correct = gameState.recentChoices.filter(t => t.outcome).length;
+            const accuracy = Math.round((correct / gameState.recentChoices.length) * 100);
+            document.getElementById('recentAccuracy').textContent = `${accuracy}%`;
+        }
+        
+        // Show results screen
+        function showResults() {
+            showScreen('resultsScreen');
+            calculateAndDisplayResults();
+        }
+        
+        // Calculate and display results
+        function calculateAndDisplayResults() {
+            const analysis = analyzePerformance();
+            
+            // Update metric cards
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('scoreInsight').textContent = `${Math.round((gameState.score / gameState.totalTrials) * 100)}% accuracy`;
+            
+            document.getElementById('flexibilityRating').textContent = analysis.flexibility;
+            document.getElementById('flexibilityInsight').textContent = analysis.flexibilityInsight;
+            
+            document.getElementById('learningStyle').textContent = analysis.learningStyle;
+            document.getElementById('learningInsight').textContent = analysis.learningInsight;
+            
+            document.getElementById('feedbackSensitivity').textContent = analysis.feedbackSensitivity;
+            document.getElementById('feedbackInsight').textContent = analysis.feedbackInsight;
+            
+            document.getElementById('performanceText').textContent = analysis.detailedAnalysis;
+            
+            // Create chart
+            createPerformanceChart();
+        }
+        
+        // Analyze performance
+        function analyzePerformance() {
+            const initialTrials = gameState.trialData.filter(t => t.phase === 'initial');
+            const reversalTrials = gameState.trialData.filter(t => t.phase === 'reversal');
+            
+            // Calculate metrics
+            const initialAccuracy = calculateAccuracy(initialTrials);
+            const reversalAccuracy = calculateAccuracy(reversalTrials);
+            const perseverativeErrors = calculatePerseverativeErrors(reversalTrials);
+            const winStayRatio = calculateWinStayRatio();
+            const loseShiftRatio = calculateLoseShiftRatio();
+            
+            // Determine cognitive flexibility
+            let flexibility, flexibilityInsight;
+            if (perseverativeErrors < 2) {
+                flexibility = 'Highly Flexible';
+                flexibilityInsight = 'Excellent adaptation to rule changes!';
+            } else if (perseverativeErrors > 4) {
+                flexibility = 'Rigid';
+                flexibilityInsight = 'Difficulty letting go of old rules.';
+            } else {
+                flexibility = 'Moderate';
+                flexibilityInsight = 'Average ability to adapt to changes.';
+            }
+            
+            // Determine learning style
+            let learningStyle, learningInsight;
+            const initialLearningSpeed = calculateLearningSpeed(initialTrials);
+            if (initialLearningSpeed > 0.8) {
+                learningStyle = 'Quick Adapter';
+                learningInsight = 'Rapid pattern recognition and learning.';
+            } else if (initialLearningSpeed < 0.6) {
+                learningStyle = 'Exploratory';
+                learningInsight = 'Learning through trial and error.';
+            } else {
+                learningStyle = 'Systematic';
+                learningInsight = 'Consistent, methodical approach.';
+            }
+            
+            // Determine feedback sensitivity
+            let feedbackSensitivity, feedbackInsight;
+            if (winStayRatio > 0.8 && loseShiftRatio > 0.7) {
+                feedbackSensitivity = 'Highly Responsive';
+                feedbackInsight = 'Very attentive to feedback signals.';
+            } else if (winStayRatio < 0.6 && loseShiftRatio < 0.5) {
+                feedbackSensitivity = 'Low Responsiveness';
+                feedbackInsight = 'May benefit from attending more to feedback.';
+            } else {
+                feedbackSensitivity = 'Balanced';
+                feedbackInsight = 'Appropriate response to feedback.';
+            }
+            
+            // Create detailed analysis
+            const percentile = calculatePercentile();
+            const detailedAnalysis = `You achieved ${Math.round(initialAccuracy * 100)}% accuracy in the initial phase and adapted to ${Math.round(reversalAccuracy * 100)}% accuracy after the rule change. Your total score of ${gameState.score}/${gameState.totalTrials} places you in the ${percentile}th percentile. Your ${flexibility.toLowerCase()} cognitive flexibility combined with a ${learningStyle.toLowerCase()} learning approach suggests ${generateRecommendation(flexibility, learningStyle)}.`;
+            
+            return {
+                flexibility,
+                flexibilityInsight,
+                learningStyle,
+                learningInsight,
+                feedbackSensitivity,
+                feedbackInsight,
+                detailedAnalysis
+            };
+        }
+        
+        // Calculate accuracy for a set of trials
+        function calculateAccuracy(trials) {
+            if (trials.length === 0) return 0;
+            return trials.filter(t => t.outcome).length / trials.length;
+        }
+        
+        // Calculate perseverative errors
+        function calculatePerseverativeErrors(reversalTrials) {
+            return reversalTrials.slice(0, 5).filter(t => t.stimulus === 'circle').length;
+        }
+        
+        // Calculate learning speed
+        function calculateLearningSpeed(trials) {
+            const firstFive = trials.slice(0, 5);
+            return calculateAccuracy(firstFive);
+        }
+        
+        // Calculate win-stay ratio
+        function calculateWinStayRatio() {
+            let winStay = 0, wins = 0;
+            for (let i = 0; i < gameState.trialData.length - 1; i++) {
+                if (gameState.trialData[i].outcome) {
+                    wins++;
+                    if (gameState.trialData[i].stimulus === gameState.trialData[i + 1].stimulus) {
+                        winStay++;
+                    }
+                }
+            }
+            return wins > 0 ? winStay / wins : 0;
+        }
+        
+        // Calculate lose-shift ratio
+        function calculateLoseShiftRatio() {
+            let loseShift = 0, loses = 0;
+            for (let i = 0; i < gameState.trialData.length - 1; i++) {
+                if (!gameState.trialData[i].outcome) {
+                    loses++;
+                    if (gameState.trialData[i].stimulus !== gameState.trialData[i + 1].stimulus) {
+                        loseShift++;
+                    }
+                }
+            }
+            return loses > 0 ? loseShift / loses : 0;
+        }
+        
+        // Calculate performance percentile
+        function calculatePercentile() {
+            const accuracy = (gameState.score / gameState.totalTrials) * 100;
+            if (accuracy >= 85) return 95;
+            if (accuracy >= 80) return 85;
+            if (accuracy >= 75) return 75;
+            if (accuracy >= 70) return 60;
+            if (accuracy >= 65) return 50;
+            if (accuracy >= 60) return 35;
+            if (accuracy >= 55) return 20;
+            return 10;
+        }
+        
+        // Generate recommendation
+        function generateRecommendation(flexibility, learningStyle) {
+            if (flexibility === 'Highly Flexible') {
+                return 'excellent cognitive adaptability';
+            } else if (flexibility === 'Rigid') {
+                return 'opportunities to practice mental flexibility through strategy games and new experiences';
+            }
+            return 'good potential for developing cognitive flexibility through mindfulness and problem-solving exercises';
+        }
+        
+        // Create performance chart using Chart.js
+        function createPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            // Calculate rolling accuracy
+            const accuracy = [];
+            const labels = [];
+            
+            for (let i = 0; i < gameState.trialData.length; i++) {
+                const recentTrials = gameState.trialData.slice(Math.max(0, i - 4), i + 1);
+                const acc = (recentTrials.filter(t => t.outcome).length / recentTrials.length) * 100;
+                accuracy.push(Math.round(acc));
+                labels.push(i + 1);
+            }
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Rolling Accuracy (5-trial average)',
+                        data: accuracy,
+                        borderColor: '#00d2ff',
+                        backgroundColor: 'rgba(0, 210, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#00d2ff',
+                        pointBorderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Trial Number',
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Accuracy (%)',
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Export data function
+        function exportData(format) {
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `cognitive-assessment-${timestamp}.${format}`;
+            
+            if (format === 'csv') {
+                const headers = ['trial', 'stimulus', 'outcome', 'reactionTime', 'phase', 'correctStimulus', 'timestamp'];
+                const rows = gameState.trialData.map(t => [
+                    t.number,
+                    t.stimulus,
+                    t.outcome,
+                    t.reactionTime,
+                    t.phase,
+                    t.correctStimulus,
+                    t.timestamp
+                ]);
+                
+                const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+                downloadFile(filename, csv, 'text/csv');
+            } else if (format === 'json') {
+                const data = {
+                    summary: {
+                        score: gameState.score,
+                        totalTrials: gameState.totalTrials,
+                        accuracy: Math.round((gameState.score / gameState.totalTrials) * 100),
+                        flexibility: document.getElementById('flexibilityRating').textContent,
+                        learningStyle: document.getElementById('learningStyle').textContent,
+                        feedbackSensitivity: document.getElementById('feedbackSensitivity').textContent,
+                        completedAt: new Date().toISOString()
+                    },
+                    trials: gameState.trialData
+                };
+                
+                downloadFile(filename, JSON.stringify(data, null, 2), 'application/json');
+            }
+        }
+        
+        // Download file helper
+        function downloadFile(filename, content, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Restart the game
+        function restartGame() {
+            showScreen('instructionsScreen');
+        }
+        
+        // Show specific screen
+        function showScreen(screenId) {
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            // Reset scroll position
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        }
+    </script>
+</body>
+</html>
